@@ -1,0 +1,50 @@
+package com.aliyun.oss;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.UUID;
+
+/**
+ * 阿里云OSS工具类
+ */
+public class AliOSSUtils {
+
+    private AliOSSProperties aliOSSProperties;
+
+    public AliOSSProperties getAliOSSProperties() {
+        return aliOSSProperties;
+    }
+
+    public void setAliOSSProperties(AliOSSProperties aliOSSProperties) {
+        this.aliOSSProperties = aliOSSProperties;
+    }
+
+    public String upload(MultipartFile file) throws IOException {
+        //获取阿里云OSS参数
+        String endpoint = aliOSSProperties.getEndpoint();
+        String accessKeyId = aliOSSProperties.getAccessKeyId();
+        String accessKeySecret = aliOSSProperties.getAccessKeySecret();
+        String bucketName = aliOSSProperties.getBucketName();
+
+        //获取上传文件的输入流
+        InputStream inputStream = file.getInputStream();
+
+        //避免文件覆盖，构造唯一的文件名-- uuid（通用唯一识别码）
+        String originalFilename = file.getOriginalFilename();
+        String fileName = UUID.randomUUID().toString() + originalFilename.substring(originalFilename.lastIndexOf("."));
+
+        //上传文件到OSS
+        OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
+        ossClient.putObject(bucketName, fileName, inputStream);
+
+        //文件访问路径
+        String url = endpoint.split("//")[0] + "//" + bucketName + "." + endpoint.split("//")[1] + "/" + fileName;
+
+        //关闭ossClient
+        ossClient.shutdown();
+        return url;
+    }
+}
